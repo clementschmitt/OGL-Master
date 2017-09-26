@@ -6,6 +6,7 @@
 #include <glfw3.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 using namespace glm;
 
 #include <common/shader.hpp>
@@ -25,19 +26,24 @@ int main( void )
 
 	GLFWwindow* window;
 	window = glfwCreateWindow(1024, 768, "My Window", NULL, NULL);
-
 	if (window == NULL) {
 		fprintf(stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version.\n");
 		glfwTerminate();
 		return -1;
 	}
 	glfwMakeContextCurrent(window);
+	
 	glewExperimental = true;
-
 	if(glewInit() != GLEW_OK){
 		fprintf(stderr, "Failed to initialize GLEW\n"); 
 		return -1;
 	}
+
+	//Autorise la capture de la touche échap enfoncée
+	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+
+	// Dark blue background
+	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
 	GLuint VertexArrayID;
 	glGenVertexArrays(1, &VertexArrayID);
@@ -45,6 +51,26 @@ int main( void )
 
 	//Create and compile our GLSL program from the shaders
 	GLuint programID = LoadShaders("SimpleVertexShader.vertexshader", "SimpleFragmentShader.fragmentshader");
+
+	// Get a handle for our "MVP" uniform
+	// Only during the initialisation
+	GLuint MatrixID = glGetUniformLocation(programID, "MVP");
+
+	//Projection matrix 45° field of view, screen ratio 4:3, display range
+	glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
+
+	//Camera Matrix
+	glm::mat4 View = glm::lookAt(
+		glm::vec3(4, 3, 3), // Camera is at (4,3,3) in World space
+		glm::vec3(0, 0, 0), // and look at the origin
+		glm::vec3(0, 1, 0)  // Head is up
+	);
+
+	//Model matrix
+	glm::mat4 Model = glm::mat4(1.0f);
+
+	//ModelViewProjection multiplication
+	glm::mat4 MVP = Projection * View * Model;
 
 	static const GLfloat g_vertex_buffer_data[] = {
 		-1.0f, -1.0f, 0.0f,
@@ -61,16 +87,13 @@ int main( void )
 	// Give our vertices to OpenGL.
 	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
 
-
-	//Autorise la capture de la touche échap enfoncée
-	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
-
 	do {
 		// Clear the screen
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT);
 
 		// Use our shader
 		glUseProgram(programID);
+		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 
 		glEnableVertexAttribArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
