@@ -58,6 +58,8 @@ int main( void )
 
 	//Projection matrix 45° field of view, screen ratio 4:3, display range
 	glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
+	// Ortho camera :
+	//glm::mat4 Projection = glm::ortho(-10.0f,10.0f,-10.0f,10.0f,0.0f,100.0f); // In world coordinates
 
 	//Camera Matrix
 	glm::mat4 View = glm::lookAt(
